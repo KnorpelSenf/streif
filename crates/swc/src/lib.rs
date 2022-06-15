@@ -215,8 +215,7 @@ fn add_prefix(src: Str) -> Str {
     Str {
         span: src.span,
         value: if src.value.starts_with("http://") || src.value.starts_with("https://") {
-            let prefix = "https://streif.deno.dev/".to_string();
-            JsWord::from(prefix + &src.value)
+            JsWord::from(format!("https://streif.deno.dev/{}", src.value))
         } else {
             src.value
         },
