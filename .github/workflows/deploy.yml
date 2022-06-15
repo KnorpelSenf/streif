@@ -21,7 +21,7 @@ jobs:
           profile: minimal
 
       - name: Install
-        uses: ./build.sh
+        run: ./build.sh
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
