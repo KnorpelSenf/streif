@@ -60,6 +60,15 @@ I hacked this in 24 hours.
 
 But it's an exciting tool, please contribute!
 
+## Contributing
+
+1. Install [Rust](https://www.rust-lang.org/).
+2. Install wasm-pack using `cargo install wasm-pack`.
+3. Run `./build.sh`.
+   (That will take a while, especially the first time.)
+
+You can now run the server using `deno run -A server/server.ts`.
+
 ## What Does the Name Mean?
 
 _streif_ is the imperative mood of the German translation of the verb _to strip_.
