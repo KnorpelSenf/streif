@@ -21,7 +21,7 @@ jobs:
           profile: minimal
 
       - name: Install
-        run: cd crates/binding_core_wasm && wasm-pack build --out-name wasm --release --scope=swc --target web && rm pkg/{.gitignore,package.json}
+        run: bash -c "cd crates/binding_core_wasm && wasm-pack build --out-name wasm --release --scope=swc --target web && rm pkg/{.gitignore,package.json}"
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
