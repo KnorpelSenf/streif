@@ -10,7 +10,6 @@ const opts = {
       decorators: true,
       dynamicImport: true,
     },
-    target: "es2016",
   },
 };
 
