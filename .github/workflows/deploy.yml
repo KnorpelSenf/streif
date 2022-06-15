@@ -20,7 +20,10 @@ jobs:
         with:
           profile: minimal
 
-      - name: Install
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Build compiler
         run: ./build.sh
 
       - name: Upload to Deno Deploy
