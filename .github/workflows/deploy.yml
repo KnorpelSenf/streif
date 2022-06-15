@@ -10,19 +10,18 @@ jobs:
       contents: read # Needed to clone the repository
 
     steps:
-      - name: Setup repo
+      - name: Clone repo
         uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
 
-      - name: Cache Dependencies
-        run: cargo --version
-
-      # - name: Install
-      #   run: bash -c "cd crates/binding_core_wasm && wasm-pack build --out-name wasm --release --scope=swc --target web && rm pkg/{.gitignore,package.json}"
+      - name: Install
+        run: ./build.sh
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
