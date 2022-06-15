@@ -1,24 +1,13 @@
 import { serve } from "https://deno.land/std@0.143.0/http/server.ts";
-import initSwc, { transformSync } from "./crates/binding_core_wasm/pkg/wasm.js";
+import initSwc, { transformSync } from "./pkg/wasm.js";
 await initSwc();
 
-const opts = {
-  jsc: {
-    parser: {
-      syntax: "typescript",
-      tsx: true,
-      decorators: true,
-      dynamicImport: true,
-    },
-  },
-};
-
 async function handler(req: Request): Promise<Response> {
-  const target = new URL(req.url).pathname.substring(1);
-  console.log(target);
+  const target = new URL(req.url);
+  console.log(target.href);
   let url: URL;
   try {
-    url = new URL(target);
+    url = new URL(target.pathname.substring(1));
   } catch {
     return new Response("no a URL", { status: 400 });
   }
@@ -31,6 +20,13 @@ async function handler(req: Request): Promise<Response> {
   } catch {
     return new Response("no text", { status: 400 });
   }
+  const parser = {
+    syntax: "typescript",
+    tsx: target.searchParams.get("tsx") !== null,
+    decorators: target.searchParams.get("decorators") !== null,
+    dynamicImport: target.searchParams.get("dynamicImport") !== null,
+  };
+  const opts = { jsc: { parser, target: "es2022" } };
   const js = transformSync(ts, opts, {}).code;
   return new Response(js, {
     headers: {
