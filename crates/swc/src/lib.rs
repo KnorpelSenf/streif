@@ -173,17 +173,46 @@ struct ImportPrefixer;
 impl swc_ecma_visit::Fold for ImportPrefixer {
     #[inline(always)]
     fn fold_module(&mut self, module: swc_ecma_ast::Module) -> swc_ecma_ast::Module {
-        for item in module.body {
-            if item.is_module_decl() {
-                let decl = item.expect_module_decl();
-                if decl.is_import() {
-                    let prefix = "https://example.com/".to_string();
-                    let mut import = decl.expect_import();
-                    import.src.value = JsWord::from(prefix + &import.src.value.to_string());
-                }
-            }
+        swc_ecma_ast::Module {
+            span: module.span,
+            body: module
+                .body
+                .iter()
+                .map(|i| {
+                    let item = i.to_owned();
+                    if item.is_module_decl() {
+                        let dec = item.expect_module_decl();
+                        swc_ecma_ast::ModuleItem::ModuleDecl(if dec.is_import() {
+                            let imp = dec.expect_import();
+                            let src = imp.src;
+                            swc_ecma_ast::ModuleDecl::Import(swc_ecma_ast::ImportDecl {
+                                span: imp.span,
+                                specifiers: imp.specifiers,
+                                src: swc_ecma_ast::Str {
+                                    span: src.span,
+                                    value: if src.value.starts_with("http")
+                                        && src.value.ends_with(".ts")
+                                    {
+                                        let prefix = "https://streif.deno.dev/".to_owned();
+                                        JsWord::from(prefix + &src.value)
+                                    } else {
+                                        src.value
+                                    },
+                                    raw: src.raw,
+                                },
+                                type_only: imp.type_only,
+                                asserts: imp.asserts,
+                            })
+                        } else {
+                            dec
+                        })
+                    } else {
+                        item
+                    }
+                })
+                .collect::<Vec<_>>(),
+            shebang: module.shebang,
         }
-        module
     }
 }
 
