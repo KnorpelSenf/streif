@@ -31,3 +31,4 @@ jobs:
         with:
           project: "streif"
           entrypoint: "./server.ts"
+          cwd: server
