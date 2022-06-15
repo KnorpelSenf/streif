@@ -165,7 +165,7 @@ use crate::config::{
     BuiltInput, Config, ConfigFile, InputSourceMap, Options, Rc, RootMode, SourceMapsConfig,
 };
 
-pub fn transpileImports() -> impl swc_ecma_visit::Fold {
+pub fn transpile_imports() -> impl swc_ecma_visit::Fold {
     ImportPrefixer
 }
 
@@ -177,7 +177,7 @@ impl swc_ecma_visit::Fold for ImportPrefixer {
             if item.is_module_decl() {
                 let decl = item.expect_module_decl();
                 if decl.is_import() {
-                    let prefix = "https://example.com/".to_owned();
+                    let prefix = "https://example.com/".to_string();
                     let mut import = decl.expect_import();
                     import.src.value = JsWord::from(prefix + &import.src.value.to_string());
                 }
@@ -947,7 +947,7 @@ impl Compiler {
             handler,
             opts,
             |_, _| noop(),
-            |_, _| transpileImports(),
+            |_, _| transpile_imports(),
         )
     }
 
