@@ -190,8 +190,8 @@ impl swc_ecma_visit::Fold for ImportPrefixer {
                                 specifiers: imp.specifiers,
                                 src: swc_ecma_ast::Str {
                                     span: src.span,
-                                    value: if src.value.starts_with("http")
-                                        && src.value.ends_with(".ts")
+                                    value: if src.value.starts_with("http://")
+                                        || src.value.starts_with("https://")
                                     {
                                         let prefix = "https://streif.deno.dev/".to_string();
                                         JsWord::from(prefix + &src.value)
@@ -202,6 +202,45 @@ impl swc_ecma_visit::Fold for ImportPrefixer {
                                 },
                                 type_only: imp.type_only,
                                 asserts: imp.asserts,
+                            })
+                        } else if dec.is_export_named() {
+                            let exp = dec.expect_export_named();
+                            swc_ecma_ast::ModuleDecl::ExportNamed(swc_ecma_ast::NamedExport {
+                                span: exp.span,
+                                specifiers: exp.specifiers,
+                                src: exp.src.map(|src| swc_ecma_ast::Str {
+                                    span: src.span,
+                                    value: if src.value.starts_with("http://")
+                                        || src.value.starts_with("https://")
+                                    {
+                                        let prefix = "https://streif.deno.dev/".to_string();
+                                        JsWord::from(prefix + &src.value)
+                                    } else {
+                                        src.value
+                                    },
+                                    raw: src.raw,
+                                }),
+                                type_only: exp.type_only,
+                                asserts: exp.asserts,
+                            })
+                        } else if dec.is_export_all() {
+                            let exp = dec.expect_export_all();
+                            let src = exp.src;
+                            swc_ecma_ast::ModuleDecl::ExportAll(swc_ecma_ast::ExportAll {
+                                span: exp.span,
+                                src: swc_ecma_ast::Str {
+                                    span: src.span,
+                                    value: if src.value.starts_with("http://")
+                                        || src.value.starts_with("https://")
+                                    {
+                                        let prefix = "https://streif.deno.dev/".to_string();
+                                        JsWord::from(prefix + &src.value)
+                                    } else {
+                                        src.value
+                                    },
+                                    raw: src.raw,
+                                },
+                                asserts: exp.asserts,
                             })
                         } else {
                             dec
