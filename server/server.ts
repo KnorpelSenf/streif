@@ -9,7 +9,7 @@ async function handler(req: Request): Promise<Response> {
   try {
     url = new URL(target.pathname.substring(1));
   } catch {
-    return new Response("no a URL", { status: 400 });
+    return new Response("not a URL", { status: 400 });
   }
   const src = await fetch(url);
   if (!src.ok) return new Response("cannot fetch", { status: 400 });
