@@ -193,7 +193,7 @@ impl swc_ecma_visit::Fold for ImportPrefixer {
                                     value: if src.value.starts_with("http")
                                         && src.value.ends_with(".ts")
                                     {
-                                        let prefix = "https://streif.deno.dev/".to_owned();
+                                        let prefix = "https://streif.deno.dev/".to_string();
                                         JsWord::from(prefix + &src.value)
                                     } else {
                                         src.value
