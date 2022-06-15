@@ -138,7 +138,10 @@ use swc_common::{
 };
 pub use swc_config::config_types::{BoolConfig, BoolOr, BoolOrDataConfig};
 use swc_config::merge::Merge;
-use swc_ecma_ast::{EsVersion, Ident, Program};
+use swc_ecma_ast::{
+    EsVersion, ExportAll, Ident, ImportDecl, Module, ModuleDecl, ModuleItem, NamedExport, Program,
+    Str,
+};
 use swc_ecma_codegen::{self, text_writer::WriteJs, Emitter, Node};
 use swc_ecma_loader::resolvers::{
     lru::CachingResolver, node::NodeModulesResolver, tsc::TsConfigResolver,
@@ -165,93 +168,59 @@ use crate::config::{
     BuiltInput, Config, ConfigFile, InputSourceMap, Options, Rc, RootMode, SourceMapsConfig,
 };
 
-pub fn transpile_imports() -> impl swc_ecma_visit::Fold {
+fn transpile_imports() -> impl swc_ecma_visit::Fold {
     ImportPrefixer
 }
-
 struct ImportPrefixer;
 impl swc_ecma_visit::Fold for ImportPrefixer {
-    #[inline(always)]
-    fn fold_module(&mut self, module: swc_ecma_ast::Module) -> swc_ecma_ast::Module {
-        swc_ecma_ast::Module {
+    fn fold_module(&mut self, module: Module) -> Module {
+        Module {
             span: module.span,
-            body: module
-                .body
-                .iter()
-                .map(|i| {
-                    let item = i.to_owned();
-                    if item.is_module_decl() {
-                        let dec = item.expect_module_decl();
-                        swc_ecma_ast::ModuleItem::ModuleDecl(if dec.is_import() {
-                            let imp = dec.expect_import();
-                            let src = imp.src;
-                            swc_ecma_ast::ModuleDecl::Import(swc_ecma_ast::ImportDecl {
-                                span: imp.span,
-                                specifiers: imp.specifiers,
-                                src: swc_ecma_ast::Str {
-                                    span: src.span,
-                                    value: if src.value.starts_with("http://")
-                                        || src.value.starts_with("https://")
-                                    {
-                                        let prefix = "https://streif.deno.dev/".to_string();
-                                        JsWord::from(prefix + &src.value)
-                                    } else {
-                                        src.value
-                                    },
-                                    raw: src.raw,
-                                },
-                                type_only: imp.type_only,
-                                asserts: imp.asserts,
-                            })
-                        } else if dec.is_export_named() {
-                            let exp = dec.expect_export_named();
-                            swc_ecma_ast::ModuleDecl::ExportNamed(swc_ecma_ast::NamedExport {
-                                span: exp.span,
-                                specifiers: exp.specifiers,
-                                src: exp.src.map(|src| swc_ecma_ast::Str {
-                                    span: src.span,
-                                    value: if src.value.starts_with("http://")
-                                        || src.value.starts_with("https://")
-                                    {
-                                        let prefix = "https://streif.deno.dev/".to_string();
-                                        JsWord::from(prefix + &src.value)
-                                    } else {
-                                        src.value
-                                    },
-                                    raw: src.raw,
-                                }),
-                                type_only: exp.type_only,
-                                asserts: exp.asserts,
-                            })
-                        } else if dec.is_export_all() {
-                            let exp = dec.expect_export_all();
-                            let src = exp.src;
-                            swc_ecma_ast::ModuleDecl::ExportAll(swc_ecma_ast::ExportAll {
-                                span: exp.span,
-                                src: swc_ecma_ast::Str {
-                                    span: src.span,
-                                    value: if src.value.starts_with("http://")
-                                        || src.value.starts_with("https://")
-                                    {
-                                        let prefix = "https://streif.deno.dev/".to_string();
-                                        JsWord::from(prefix + &src.value)
-                                    } else {
-                                        src.value
-                                    },
-                                    raw: src.raw,
-                                },
-                                asserts: exp.asserts,
-                            })
-                        } else {
-                            dec
-                        })
-                    } else {
-                        item
-                    }
-                })
-                .collect::<Vec<_>>(),
+            body: module.body.iter().map(fold_module_item).collect::<Vec<_>>(),
             shebang: module.shebang,
         }
+    }
+}
+
+fn fold_module_item(i: &ModuleItem) -> ModuleItem {
+    let item = i.to_owned();
+    match item {
+        ModuleItem::ModuleDecl(dec) => ModuleItem::ModuleDecl(match dec {
+            ModuleDecl::Import(imp) => ModuleDecl::Import(ImportDecl {
+                span: imp.span,
+                specifiers: imp.specifiers,
+                src: add_prefix(imp.src),
+                type_only: imp.type_only,
+                asserts: imp.asserts,
+            }),
+            ModuleDecl::ExportNamed(exp) => ModuleDecl::ExportNamed(NamedExport {
+                span: exp.span,
+                specifiers: exp.specifiers,
+                src: exp.src.map(add_prefix),
+                type_only: exp.type_only,
+                asserts: exp.asserts,
+            }),
+            ModuleDecl::ExportAll(exp) => ModuleDecl::ExportAll(ExportAll {
+                span: exp.span,
+                src: add_prefix(exp.src),
+                asserts: exp.asserts,
+            }),
+            other => other,
+        }),
+        other => other,
+    }
+}
+
+fn add_prefix(src: Str) -> Str {
+    Str {
+        span: src.span,
+        value: if src.value.starts_with("http://") || src.value.starts_with("https://") {
+            let prefix = "https://streif.deno.dev/".to_string();
+            JsWord::from(prefix + &src.value)
+        } else {
+            src.value
+        },
+        raw: src.raw,
     }
 }
 
