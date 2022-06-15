@@ -165,6 +165,28 @@ use crate::config::{
     BuiltInput, Config, ConfigFile, InputSourceMap, Options, Rc, RootMode, SourceMapsConfig,
 };
 
+pub fn transpileImports() -> impl swc_ecma_visit::Fold {
+    ImportPrefixer
+}
+
+struct ImportPrefixer;
+impl swc_ecma_visit::Fold for ImportPrefixer {
+    #[inline(always)]
+    fn fold_module(&mut self, module: swc_ecma_ast::Module) -> swc_ecma_ast::Module {
+        for item in module.body {
+            if item.is_module_decl() {
+                let decl = item.expect_module_decl();
+                if decl.is_import() {
+                    let prefix = "https://example.com/".to_owned();
+                    let mut import = decl.expect_import();
+                    import.src.value = JsWord::from(prefix + &import.src.value.to_string());
+                }
+            }
+        }
+        module
+    }
+}
+
 mod builder;
 pub mod config;
 mod dropped_comments_preserver;
@@ -919,7 +941,14 @@ impl Compiler {
         handler: &Handler,
         opts: &Options,
     ) -> Result<TransformOutput, Error> {
-        self.process_js_with_custom_pass(fm, None, handler, opts, |_, _| noop(), |_, _| noop())
+        self.process_js_with_custom_pass(
+            fm,
+            None,
+            handler,
+            opts,
+            |_, _| noop(),
+            |_, _| transpileImports(),
+        )
     }
 
     #[tracing::instrument(level = "info", skip_all)]
